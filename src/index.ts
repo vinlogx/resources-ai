@@ -9,7 +9,8 @@ dotenv.config();
 
 import AuthRoute from "./routes/auth"
 import AIRouter from "./routes/AIRouter";
-
+import AIRouterV1 from "./routes/AIRouterV1";
+import { authGuard } from "./middlewares/auth";
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
@@ -37,7 +38,8 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/auth", AuthRoute);
-app.use("/ai", AIRouter);
+app.use(authGuard, AIRouter);
+app.use('/v1/', authGuard, AIRouterV1);
 
 
 server = http.createServer(app);

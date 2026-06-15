@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'wsdev.govintel.io',
+    name: 'ai.api.vintel.io',
     script: './dist/index.js',
     instances: 1,
     autorestart: true,
