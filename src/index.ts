@@ -9,11 +9,12 @@ dotenv.config();
 
 import AuthRoute from "./routes/auth"
 import AIRouter from "./routes/AIRouter";
-
+import AIRouterV1 from "./routes/AIRouterV1";
+import { authGuard } from "./middlewares/auth";
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
-const isDev = process.env.NODE_ENV !== 'production';
+// const isDev = process.env.NODE_ENV !== 'production';
 let server: any = null;
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -37,7 +38,8 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/auth", AuthRoute);
-app.use("/ai", AIRouter);
+app.use(authGuard, AIRouter);
+app.use('/v1/', authGuard, AIRouterV1);
 
 
 server = http.createServer(app);
