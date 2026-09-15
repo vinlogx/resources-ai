@@ -1,284 +1,183 @@
 import OpenAI from "openai";
 import { Request, Response } from "express";
-// import axios from "axios";
 
 export default class OpenAIV1Controller {
 
-    getDiagnosticSummary = async (req: Request, res: Response) => {
+    private client = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY || "",
+    });
+
+    getDiagnosticSummary = async (req: Request, res: Response): Promise<void> => {
         try {
-            const userMessage: string = JSON.stringify(req.body.message);
-            const promptId: string = 'pmpt_69dcf5417db48197a21a21d7360f4e13082420e9d635bc5c';
+            const userMessage = JSON.stringify(req.body.message);
+            const promptId = process.env.DIAGNOSTIC_PROMPT_ID || "";
             const data = await this.makeRequest(userMessage, promptId);
 
             res.json({ status: true, data });
-
         } catch (err: any) {
             console.error(err);
             res.status(500).json({ status: false, message: "Failed to call Custom GPT", errorMessage: err.message });
         }
+    };
 
-    }
-
-    getPartDetails = async (req: Request, res: Response) => {
+    getPartDetails = async (req: Request, res: Response): Promise<void> => {
         try {
-            const userMessage: string = JSON.stringify(req.body.message);
+            const userMessage = JSON.stringify(req.body.message);
+            const assistantId = process.env.OPENAI_PART_ASSISTANT_ID ?? "";
 
-            const client = new OpenAI({
-                apiKey: process.env.OPENAI_API_KEY || "",
-            });
-
-            // Create and run assistant in one step
-            const run: any = await client.beta.threads.createAndRun({
-                assistant_id: process.env.OPENAI_PART_ASSISTANT_ID ?? "",
-                thread: {
-                    messages: [{ role: "user", content: userMessage }],
-                },
-            });
-
-            // Poll until run completes
-            let runStatus;
-            do {
-                // await new Promise((resolve) => setTimeout(resolve, 100)); // 1s delay
-                runStatus = await client.beta.threads.runs.retrieve(run.id, { thread_id: run.thread_id, });
-            } while (
-                runStatus.status !== "completed" &&
-                runStatus.status !== "failed" &&
-                runStatus.status !== "cancelled"
-            );
-
-            if (runStatus.status !== "completed") {
-                return res.status(500).json({ error: `Run ended with status: ${runStatus.status}` });
-            }
-
-            // Get latest messages
-            const messages: any = await client.beta.threads.messages.list(run.thread_id);
-            const reply: string = messages.data[0].content[0].text.value;
-
-            console.log("Assistant reply:", reply);
+            const reply = await this.makeAssistantRequest(userMessage, assistantId);
             res.json({ reply });
-
         } catch (err: any) {
             console.error(err);
-            res.status(500).json({ message: "Failed to call Custom GPT", "error": err.message });
+            if (err.message?.startsWith("Run ended with status")) {
+                res.status(500).json({ error: err.message });
+            } else {
+                res.status(500).json({ message: "Failed to call Custom GPT", error: err.message });
+            }
         }
+    };
 
-    }
-
-    getMaintenance = async (req: Request, res: Response) => {
+    getMaintenance = async (req: Request, res: Response): Promise<void> => {
         try {
-            const userMessage: string = JSON.stringify(req.body.message);
-            const promptId: string = 'pmpt_69dcfa1da10c81939b1da179296bde490f4fb05ff74356e9';
-            const data = await this.makeRequest(userMessage, promptId);
-
-            res.json({ status: true, data });
-
-        } catch (err: any) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to call Custom GPT", "error": err.message });
-        }
-
-    }
-
-    getGuidance = async (req: Request, res: Response) => {
-        try {
-            const userMessage: string = JSON.stringify(req.body.message);
-            const promptId: string = 'pmpt_69dcf83160d88193ad6b7993d7777f1704f8cd1958a13e40';
+            const userMessage = JSON.stringify(req.body.message);
+            const promptId = process.env.MAINTAINANCE_PROMPT_ID || "";
             const data = await this.makeRequest(userMessage, promptId);
 
             res.json({ status: true, data });
         } catch (err: any) {
             console.error(err);
-            res.status(500).json({ message: "Failed to call Custom GPT", "error": err.message });
+            res.status(500).json({ message: "Failed to call Custom GPT", error: err.message });
         }
+    };
 
-    }
-
-    getInspection = async (req: Request, res: Response) => {
+    getGuidance = async (req: Request, res: Response): Promise<void> => {
         try {
-            const userMessage: string = JSON.stringify(req.body.message);
-            const promptId: string = 'pmpt_69dcf9ddd21881968428b49a481f34d303927fdeeadc9d7c';
-            const data = await this.makeRequest(userMessage, promptId);
+            const userMessage = JSON.stringify(req.body.message);
+            const promptId = process.env.GUIDANCE_PROMPT_ID || "";
+            let data = await this.makeRequest(userMessage, promptId);
 
-            res.json({ status: true, data });
-
-        } catch (err: any) {
-            console.error(err);
-            res.status(500).json({ message: "Failed to call Custom GPT", "error": err.message });
-        }
-
-    }
-
-    getDriveCycle = async (req: Request, res: Response) => {
-        try {
-            const userMessage: string = JSON.stringify(req.body.message);
-            const promptId: string = 'pmpt_69fb7fed94688196b91b74aab5f29bfc03f4b7716a3f087f';
-            const data = await this.makeRequest(userMessage, promptId);
-
+            if (data?.reply) {
+                data = typeof data.reply === 'string' ? JSON.parse(data.reply) : data.reply;
+            }
             res.json({ status: true, data });
         } catch (err: any) {
             console.error(err);
-            res.status(500).json({ message: "Failed to call Custom GPT", "error": err.message });
+            res.status(500).json({ message: "Failed to call Custom GPT", error: err.message });
         }
-    }
+    };
 
-    async getPartLookUp(req: Request, res: Response) {
+    getInspection = async (req: Request, res: Response): Promise<void> => {
         try {
-            const userMessage: string = JSON.stringify(req.body.message);
+            const userMessage = JSON.stringify(req.body.message);
+            const promptId = process.env.INSPECTIONS_PROMPT_ID || "";
+            const data = await this.makeRequest(userMessage, promptId);
 
-            const client = new OpenAI({
-                apiKey: process.env.OPENAI_API_KEY || "",
-            });
-
-            // Create and run assistant in one step
-            const run: any = await client.beta.threads.createAndRun({
-                assistant_id: "asst_CchZHhx3D84vxaamdmk0liIK",
-                thread: {
-                    messages: [{ role: "user", content: userMessage }],
-                },
-            });
-
-            // Poll until run completes
-            let runStatus;
-            do {
-                // await new Promise((resolve) => setTimeout(resolve, 100)); // 1s delay
-                runStatus = await client.beta.threads.runs.retrieve(run.id, { thread_id: run.thread_id, });
-            } while (
-                runStatus.status !== "completed" &&
-                runStatus.status !== "failed" &&
-                runStatus.status !== "cancelled"
-            );
-
-            if (runStatus.status !== "completed") {
-                return res.status(500).json({ error: `Run ended with status: ${runStatus.status}` });
-            }
-
-            // Get latest messages
-            const messages: any = await client.beta.threads.messages.list(run.thread_id);
-            const reply: string = messages.data[0].content[0].text.value;
-
-            console.log("Assistant reply:", reply);
-            res.json({ reply });
-
+            res.json({ status: true, data });
         } catch (err: any) {
             console.error(err);
-            res.status(500).json({ message: "Failed to call Custom GPT", "error": err.message });
+            res.status(500).json({ message: "Failed to call Custom GPT", error: err.message });
         }
+    };
 
-    }
-
-    async getAdvisorReport(req: Request, res: Response) {
+    getDriveCycle = async (req: Request, res: Response): Promise<void> => {
         try {
-            const userMessage: string = JSON.stringify(req.body.message);
+            const userMessage = JSON.stringify(req.body.message);
+            const promptId = process.env.DRIVE_CYCLE_PROMPT_ID || "";
+            const data = await this.makeRequest(userMessage, promptId);
 
-            const client = new OpenAI({
-                apiKey: process.env.OPENAI_API_KEY || "",
-            });
-
-            // Create and run assistant in one step
-            const run: any = await client.beta.threads.createAndRun({
-                assistant_id: "asst_LD7DMJQdd3n4I6YxsbEzOoir",
-                thread: {
-                    messages: [{ role: "user", content: userMessage }],
-                },
-            });
-
-            // Poll until run completes
-            let runStatus;
-            do {
-                // await new Promise((resolve) => setTimeout(resolve, 100)); // 1s delay
-                runStatus = await client.beta.threads.runs.retrieve(run.id, { thread_id: run.thread_id, });
-            } while (
-                runStatus.status !== "completed" &&
-                runStatus.status !== "failed" &&
-                runStatus.status !== "cancelled"
-            );
-
-            if (runStatus.status !== "completed") {
-                return res.status(500).json({ error: `Run ended with status: ${runStatus.status}` });
-            }
-
-            // Get latest messages
-            const messages: any = await client.beta.threads.messages.list(run.thread_id);
-            const reply: string = messages.data[0].content[0].text.value;
-
-            console.log("Assistant reply:", reply);
-            res.json({ reply });
-
+            res.json({ status: true, data });
         } catch (err: any) {
             console.error(err);
-            res.status(500).json({ message: "Failed to call Custom GPT", "error": err.message });
+            res.status(500).json({ message: "Failed to call Custom GPT", error: err.message });
         }
+    };
 
-    }
-
-    async getDTCDefinition(req: Request, res: Response) {
+    getPartLookUp = async (req: Request, res: Response): Promise<void> => {
         try {
-            const userMessage: string = JSON.stringify(req.body.message);
+            const userMessage = JSON.stringify(req.body.message);
+            const promptId = process.env.PART_LOOKUP_PROMPT_ID || "";
+            const data = await this.makeRequest(userMessage, promptId);
 
-            const client = new OpenAI({
-                apiKey: process.env.OPENAI_API_KEY || "",
-            });
-
-            // Create and run assistant in one step
-            const run: any = await client.beta.threads.createAndRun({
-                assistant_id: "asst_LD7DMJQdd3n4I6YxsbEzOoir",
-                thread: {
-                    messages: [{ role: "user", content: userMessage }],
-                },
-            });
-
-            // Poll until run completes
-            let runStatus;
-            do {
-                // await new Promise((resolve) => setTimeout(resolve, 100)); // 1s delay
-                runStatus = await client.beta.threads.runs.retrieve(run.id, { thread_id: run.thread_id, });
-            } while (
-                runStatus.status !== "completed" &&
-                runStatus.status !== "failed" &&
-                runStatus.status !== "cancelled"
-            );
-
-            if (runStatus.status !== "completed") {
-                return res.status(500).json({ error: `Run ended with status: ${runStatus.status}` });
-            }
-
-            // Get latest messages
-            const messages: any = await client.beta.threads.messages.list(run.thread_id);
-            const reply: string = messages.data[0].content[0].text.value;
-
-            console.log("Assistant reply:", reply);
-            res.json({ reply });
-
+            res.json({ status: true, data });
         } catch (err: any) {
             console.error(err);
-            res.status(500).json({ message: "Failed to call Custom GPT", "error": err.message });
+            res.status(500).json({ message: "Failed to call Custom GPT", error: err.message });
         }
+    };
 
-    }
+    getAdvisorReport = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const userMessage = JSON.stringify(req.body.message);
+            const assistantId = process.env.ADVISOR_ASSISTANT_ID || "";
 
-    makeRequest = async (content: string, promptId: string, version?: string) => {
+            const reply = await this.makeAssistantRequest(userMessage, assistantId);
+            res.json({ reply });
+        } catch (err: any) {
+            console.error(err);
+            if (err.message?.startsWith("Run ended with status")) {
+                res.status(500).json({ error: err.message });
+            } else {
+                res.status(500).json({ message: "Failed to call Custom GPT", error: err.message });
+            }
+        }
+    };
 
-        const client = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY || "",
-        });
+    getDTCDefinition = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const userMessage = JSON.stringify(req.body.message);
+            const promptId = process.env.DTC_PROMPT_ID || "";
+            const data = await this.makeRequest(userMessage, promptId);
 
-        // Create and run assistant in one step
-        const response: any = await client.responses.create({
+            res.json({ status: true, data });
+        } catch (err: any) {
+            console.error(err);
+            res.status(500).json({ message: "Failed to call Custom GPT", error: err.message });
+        }
+    };
+
+    // Helper method for OpenAI platform prompt execution
+    private makeRequest = async (content: string, promptId: string, version?: string): Promise<any> => {
+        const response: any = await this.client.responses.create({
             prompt: {
                 id: promptId,
-                ...(version && { version: version })
+                ...(version && { version })
             },
-            input: [{
-                role: 'user',
-                content: content
-            }]
+            input: [{ role: 'user', content }]
         });
+
         try {
             return JSON.parse(response.output_text);
-        } catch (err) {
-            console.log("error", err);
+        } catch {
             return response.output_text;
         }
+    };
 
-    }
+    // Extracted shared logic for thread run pooling
+    private makeAssistantRequest = async (userMessage: string, assistantId: string): Promise<string> => {
+        const run: any = await this.client.beta.threads.createAndRun({
+            assistant_id: assistantId,
+            thread: {
+                messages: [{ role: "user", content: userMessage }],
+            },
+        });
+
+        let runStatus;
+        const terminalStatuses = ["completed", "failed", "cancelled"];
+
+        do {
+            // Re-introduced safe polling delay to prevent throttling / thread blocks
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            runStatus = await this.client.beta.threads.runs.retrieve(run.id, { thread_id: run.thread_id });
+        } while (!terminalStatuses.includes(runStatus.status));
+
+        if (runStatus.status !== "completed") {
+            throw new Error(`Run ended with status: ${runStatus.status}`);
+        }
+
+        const messages: any = await this.client.beta.threads.messages.list(run.thread_id);
+        const reply: string = messages.data[0].content[0].text.value;
+
+        console.log("Assistant reply:", reply);
+        return reply;
+    };
 }

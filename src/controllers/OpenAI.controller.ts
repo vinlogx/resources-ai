@@ -1,11 +1,8 @@
 import OpenAI from "openai";
 import { Request, Response } from "express";
-// import axios from "axios";
+
 
 export default class OpenAIController {
-    constructor() {
-
-    }
 
     async getDiagnosticSummary(req: Request, res: Response) {
         try {
@@ -107,7 +104,7 @@ export default class OpenAIController {
 
             // Create and run assistant in one step
             const run: any = await client.beta.threads.createAndRun({
-                assistant_id: "asst_HKR9w7vv8PqMALbSt4rRk5VU",
+                assistant_id: process.env.MAINTAINANCE_ASSISTANT_ID || "",
                 thread: {
                     messages: [{ role: "user", content: userMessage }],
                 },
@@ -152,7 +149,7 @@ export default class OpenAIController {
 
             // Create and run assistant in one step
             const run: any = await client.beta.threads.createAndRun({
-                assistant_id: "asst_RFVQmnHa5370V13bcdTPzbfu",
+                assistant_id: process.env.GUIDANCE_ASSISTANT_ID || "",
                 thread: {
                     messages: [{ role: "user", content: userMessage }],
                 },
@@ -197,7 +194,7 @@ export default class OpenAIController {
 
             // Create and run assistant in one step
             const run: any = await client.beta.threads.createAndRun({
-                assistant_id: "asst_eQTwO4kLzVOZ4wplAiW6XaTd",
+                assistant_id: process.env.INSPECTION_ASSISTANT_ID || "",
                 thread: {
                     messages: [{ role: "user", content: userMessage }],
                 },
@@ -242,7 +239,7 @@ export default class OpenAIController {
 
             // Create and run assistant in one step
             const run: any = await client.beta.threads.createAndRun({
-                assistant_id: "asst_mYtKrhXRZg1fvUsis6Z6zYqh",
+                assistant_id: process.env.DRIVE_CYCLE_ASSISTANT_ID || "",
                 thread: {
                     messages: [{ role: "user", content: userMessage }],
                 },
@@ -287,7 +284,7 @@ export default class OpenAIController {
 
             // Create and run assistant in one step
             const run: any = await client.beta.threads.createAndRun({
-                assistant_id: "asst_CchZHhx3D84vxaamdmk0liIK",
+                assistant_id: process.env.PART_LOOKUP_ASSISTANT_ID || "",
                 thread: {
                     messages: [{ role: "user", content: userMessage }],
                 },
@@ -332,7 +329,7 @@ export default class OpenAIController {
 
             // Create and run assistant in one step
             const run: any = await client.beta.threads.createAndRun({
-                assistant_id: "asst_LD7DMJQdd3n4I6YxsbEzOoir",
+                assistant_id: process.env.ADVISOR_REPORT_ASSISTANT_ID || "",
                 thread: {
                     messages: [{ role: "user", content: userMessage }],
                 },
@@ -377,7 +374,7 @@ export default class OpenAIController {
 
             // Create and run assistant in one step
             const run: any = await client.beta.threads.createAndRun({
-                assistant_id: "asst_LD7DMJQdd3n4I6YxsbEzOoir",
+                assistant_id: process.env.DTC_ASSISTANT_ID || "",
                 thread: {
                     messages: [{ role: "user", content: userMessage }],
                 },
